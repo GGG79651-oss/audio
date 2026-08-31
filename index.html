@@ -1,0 +1,1150 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Техническая инструкция по развёртыванию сервиса записи и распознавания устных ответов студентов.">
+<title>Развёртывание аудиосервиса</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@500;600;700&family=Literata:opsz,wght@7..72,400;7..72,600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --ground:      #F1F4F3;
+    --surface:     #FFFFFF;
+    --surface-alt: #E9EEEC;
+    --ink:         #131E1D;
+    --muted:       #596966;
+    --line:        #D6DFDD;
+    --line-soft:   #E4EAE9;
+    --accent:      #0D7A72;
+    --accent-soft: #D3E8E5;
+    --accent-ink:  #0A5B55;
+    --flag:        #A34728;
+    --flag-soft:   #F4E2DB;
+    --ok:          #2E6B45;
+    --code-bg:     #16211F;
+    --code-ink:    #DCE7E4;
+    --code-line:   #2C3A37;
+
+    --display: "Golos Text", "Helvetica Neue", Arial, sans-serif;
+    --body: "Literata", Georgia, "Times New Roman", serif;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0D1514;
+      --surface:     #15201E;
+      --surface-alt: #1B2725;
+      --ink:         #E3ECEA;
+      --muted:       #8FA5A0;
+      --line:        #26332F;
+      --line-soft:   #1E2A28;
+      --accent:      #4ECFC1;
+      --accent-soft: #14322F;
+      --accent-ink:  #7FDFD4;
+      --flag:        #E29070;
+      --flag-soft:   #2E1E18;
+      --ok:          #6FBF8F;
+      --code-bg:     #0A100F;
+      --code-ink:    #D3E0DD;
+      --code-line:   #22302D;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0D1514;
+    --surface:     #15201E;
+    --surface-alt: #1B2725;
+    --ink:         #E3ECEA;
+    --muted:       #8FA5A0;
+    --line:        #26332F;
+    --line-soft:   #1E2A28;
+    --accent:      #4ECFC1;
+    --accent-soft: #14322F;
+    --accent-ink:  #7FDFD4;
+    --flag:        #E29070;
+    --flag-soft:   #2E1E18;
+    --ok:          #6FBF8F;
+    --code-bg:     #0A100F;
+    --code-ink:    #D3E0DD;
+    --code-line:   #22302D;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 28px 96px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0 56px;
+  }
+
+  /* ---------- шапка ---------- */
+  .masthead {
+    grid-column: 1 / -1;
+    padding: 64px 0 40px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 48px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(34px, 5.2vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -.02em;
+    margin: 0 0 20px;
+    text-wrap: balance;
+    max-width: 16ch;
+  }
+  .standfirst {
+    font-size: 19px;
+    color: var(--muted);
+    max-width: 62ch;
+    margin: 0;
+  }
+
+  /* ---------- навигация ---------- */
+  nav.toc { display: none; }
+
+  /* ---------- основная колонка ---------- */
+  main { grid-column: 1 / -1; min-width: 0; }
+
+  section { margin-bottom: 60px; scroll-margin-top: 24px; }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 27px;
+    letter-spacing: -.015em;
+    line-height: 1.2;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 18.5px;
+    letter-spacing: -.008em;
+    margin: 34px 0 8px;
+  }
+  p { margin: 0 0 16px; max-width: 68ch; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; max-width: 68ch; }
+  li { margin-bottom: 7px; }
+  li::marker { color: var(--muted); }
+  strong { font-weight: 600; }
+  a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .lede { font-size: 18px; color: var(--muted); max-width: 66ch; margin-bottom: 24px; }
+
+  code {
+    font-family: var(--mono);
+    font-size: .87em;
+    background: var(--surface-alt);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    padding: 1px 5px;
+    word-break: break-word;
+  }
+
+  /* ---------- терминал ---------- */
+  .term {
+    background: var(--code-bg);
+    border-radius: 8px;
+    margin: 0 0 20px;
+    overflow: hidden;
+    border: 1px solid var(--code-line);
+  }
+  .term-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #8FA5A0;
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--code-line);
+  }
+  .term pre {
+    margin: 0;
+    padding: 15px 16px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--code-ink);
+  }
+  .term pre .c { color: #7A928D; }
+  .term pre .p { color: #4ECFC1; }
+
+  /* ---------- врезки ---------- */
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 16px 20px;
+    border-radius: 0 6px 6px 0;
+    margin: 0 0 22px;
+    max-width: 68ch;
+  }
+  .note.flag { border-left-color: var(--flag); background: var(--flag-soft); }
+  .note p:last-child { margin-bottom: 0; }
+  .note-title {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 15px;
+    display: block;
+    margin-bottom: 5px;
+  }
+
+  /* ---------- таблицы ---------- */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    margin: 0 0 22px;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td {
+    text-align: left;
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+  thead th {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--surface-alt);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.m, th.m { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+  .verb {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    letter-spacing: .04em;
+  }
+  .verb.post { background: var(--flag-soft); color: var(--flag); }
+  .lock { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
+  /* ---------- схемы ---------- */
+  figure { margin: 26px 0 28px; }
+  figure svg { max-width: 100%; height: auto; display: block; }
+  .fig-frame {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 26px 22px 18px;
+    overflow-x: auto;
+  }
+  figcaption {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 14px;
+    max-width: 66ch;
+  }
+
+  /* ---------- список паразитов ---------- */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 18px; max-width: 68ch; }
+  .chip {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 3px 9px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+  }
+  .chip-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 18px 0 8px;
+  }
+
+  hr.rule { border: 0; border-top: 1px solid var(--line); margin: 0 0 44px; }
+
+  @media (min-width: 1060px) {
+    .shell { grid-template-columns: 214px minmax(0, 1fr); }
+    nav.toc {
+      display: block;
+      grid-column: 1;
+      align-self: start;
+      position: sticky;
+      top: 32px;
+      padding-bottom: 40px;
+    }
+    nav.toc ol { list-style: none; margin: 0; padding: 0; }
+    nav.toc li { margin: 0 0 3px; }
+    nav.toc a {
+      display: block;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 5px 10px 5px 12px;
+      border-left: 2px solid var(--line);
+    }
+    nav.toc a:hover { color: var(--ink); border-left-color: var(--accent); background: var(--surface); }
+    main { grid-column: 2; }
+  }
+
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .shell { padding: 0 18px 64px; }
+    .masthead { padding-top: 44px; }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="masthead">
+    <h1>Развёртывание аудиосервиса</h1>
+    <p class="standfirst">
+      Браузер студента записывает речь, локальный сервер распознаёт её и считает метрики,
+      преподаватель выгружает CSV или отчёт за день. Здесь описано устройство сервиса,
+      порядок запуска и то, что стоит проверить до занятия. Команды приводятся
+      для Windows; варианты для macOS и Linux даны рядом.
+    </p>
+  </header>
+
+  <nav class="toc" aria-label="Разделы">
+    <ol>
+      <li><a href="#arch">Архитектура</a></li>
+      <li><a href="#stack">Стек</a></li>
+      <li><a href="#run">Локальный запуск</a></li>
+      <li><a href="#group">Режим на группу</a></li>
+      <li><a href="#isolated">Изолированная сеть</a></li>
+      <li><a href="#api">HTTP API</a></li>
+      <li><a href="#data">Данные</a></li>
+      <li><a href="#metrics">Метрики речи</a></li>
+      <li><a href="#privacy">Конфиденциальность</a></li>
+      <li><a href="#config">Настройки</a></li>
+      <li><a href="#tests">Тесты</a></li>
+      <li><a href="#limits">Ограничения</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="arch">
+      <h2>Архитектура и поток данных</h2>
+      <p class="lede">
+        Одна машина работает сервером, остальные — обычные браузеры. На устройства
+        студентов ничего не ставится, файлы после занятия собирать не нужно.
+      </p>
+
+      <p>
+        Студент открывает страницу, вводит четырёхзначный ID и записывает ответ:
+        <code>MediaRecorder</code> в браузере пишет Opus в контейнер webm. По кнопке
+        «Отправить» файл уходит на сервер обычным multipart-запросом, сервер сразу
+        отвечает <code>201</code> и кладёт запись в очередь — студент не ждёт.
+      </p>
+      <p>
+        Фоновый поток берёт задачи из очереди по одной: декодирует аудио через PyAV,
+        прогоняет через локальный Whisper с таймкодами слов, считает метрики и пишет
+        результат в SQLite. Очередь восстанавливается из базы при старте, поэтому
+        перезапуск сервиса не теряет необработанные записи.
+      </p>
+
+      <figure>
+        <div class="fig-frame">
+          <svg viewBox="0 0 860 330" role="img" aria-label="Схема: браузеры студентов отправляют записи на один сервер, где очередь распознавания превращает их в текст и метрики, а на выходе получаются CSV и отчёт за день">
+            <defs>
+              <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+              </marker>
+              <marker id="ar-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#0D7A72"/>
+              </marker>
+            </defs>
+
+            <!-- студенты -->
+            <text x="14" y="22" font-family="monospace" font-size="11" fill="currentColor" opacity=".6">УСТРОЙСТВА СТУДЕНТОВ</text>
+            <rect x="14" y="38" width="140" height="42" rx="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="84" y="59" font-size="12.5" fill="currentColor" text-anchor="middle">браузер · ID 0000</text>
+            <text x="84" y="73" font-size="11" fill="currentColor" text-anchor="middle" opacity=".6">MediaRecorder → webm</text>
+
+            <rect x="14" y="92" width="140" height="42" rx="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="84" y="113" font-size="12.5" fill="currentColor" text-anchor="middle">браузер · ID 0001</text>
+            <text x="84" y="127" font-size="11" fill="currentColor" text-anchor="middle" opacity=".6">MediaRecorder → webm</text>
+
+            <text x="84" y="156" font-size="12" fill="currentColor" text-anchor="middle" opacity=".55">…до 50 одновременно</text>
+
+            <rect x="14" y="168" width="140" height="42" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" opacity=".55"/>
+            <text x="84" y="194" font-size="12.5" fill="currentColor" text-anchor="middle" opacity=".7">браузер · ID 0049</text>
+
+            <!-- стрелка на сервер -->
+            <line x1="160" y1="120" x2="252" y2="120" stroke="#0D7A72" stroke-width="1.6" marker-end="url(#ar-a)"/>
+            <text x="206" y="111" font-size="11.5" fill="#0D7A72" text-anchor="middle" font-family="monospace">POST</text>
+            <text x="206" y="137" font-size="11" fill="currentColor" text-anchor="middle" opacity=".6">≈2,4 МБ / 5 мин</text>
+
+            <!-- сервер -->
+            <rect x="258" y="30" width="330" height="250" rx="7" fill="none" stroke="#0D7A72" stroke-width="1.6"/>
+            <text x="272" y="52" font-family="monospace" font-size="11" fill="#0D7A72">НОУТБУК ПРЕПОДАВАТЕЛЯ · ОДИН НА ГРУППУ</text>
+
+            <rect x="278" y="66" width="290" height="38" rx="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="423" y="90" font-size="12.5" fill="currentColor" text-anchor="middle">FastAPI · приём и раздача страниц</text>
+
+            <line x1="423" y1="104" x2="423" y2="124" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>
+            <text x="437" y="119" font-size="11" fill="currentColor" opacity=".65">файл на диск, статус pending</text>
+
+            <rect x="278" y="126" width="290" height="38" rx="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="423" y="150" font-size="12.5" fill="currentColor" text-anchor="middle">очередь · фоновый поток</text>
+
+            <line x1="423" y1="164" x2="423" y2="184" stroke="currentColor" stroke-width="1.3" marker-end="url(#ar)"/>
+            <text x="437" y="179" font-size="11" fill="currentColor" opacity=".65">PyAV → Whisper → метрики</text>
+
+            <rect x="278" y="186" width="290" height="38" rx="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="423" y="204" font-size="12.5" fill="currentColor" text-anchor="middle">SQLite · текст, паузы, темп</text>
+            <text x="423" y="218" font-size="11" fill="currentColor" text-anchor="middle" opacity=".6">data/app.db · data/audio</text>
+
+            <text x="423" y="252" font-size="11.5" fill="currentColor" text-anchor="middle" opacity=".6">интернет не нужен · наружу ничего не уходит</text>
+            <line x1="290" y1="262" x2="556" y2="262" stroke="currentColor" stroke-width="1" opacity=".25"/>
+
+            <!-- выходы -->
+            <line x1="594" y1="120" x2="672" y2="120" stroke="#0D7A72" stroke-width="1.6" marker-end="url(#ar-a)"/>
+            <text x="633" y="111" font-size="11.5" fill="#0D7A72" text-anchor="middle" font-family="monospace">/admin</text>
+
+            <text x="682" y="22" font-family="monospace" font-size="11" fill="currentColor" opacity=".6">НА ВЫХОДЕ</text>
+            <rect x="682" y="38" width="164" height="42" rx="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="764" y="59" font-size="12.5" fill="currentColor" text-anchor="middle">таблица ответов</text>
+            <text x="764" y="73" font-size="11" fill="currentColor" text-anchor="middle" opacity=".6">статусы в реальном времени</text>
+
+            <rect x="682" y="99" width="164" height="42" rx="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="764" y="120" font-size="12.5" fill="currentColor" text-anchor="middle">общий CSV</text>
+            <text x="764" y="134" font-size="11" fill="currentColor" text-anchor="middle" opacity=".6">ID, текст, метрики</text>
+
+            <rect x="682" y="160" width="164" height="52" rx="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="764" y="181" font-size="12.5" fill="currentColor" text-anchor="middle">отчёт за день</text>
+            <text x="764" y="195" font-size="11" fill="currentColor" text-anchor="middle" opacity=".6">папка: CSV + все аудио,</text>
+            <text x="764" y="207" font-size="11" fill="currentColor" text-anchor="middle" opacity=".6">ссылки относительные</text>
+          </svg>
+        </div>
+        <figcaption>
+          Записи попадают в одно место в момент отправки. Собирать файлы с устройств
+          после занятия не требуется — к последнему ответу отчёт уже готов.
+        </figcaption>
+      </figure>
+    </section>
+
+    <hr class="rule">
+
+    <section id="stack">
+      <h2>Стек и зависимости</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Слой</th><th>Чем сделано</th><th>Зачем именно так</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="m">Python</td>
+              <td class="m">3.11+</td>
+              <td>Windows, macOS и Linux; на Windows — установка с python.org</td>
+            </tr>
+            <tr>
+              <td class="m">HTTP</td>
+              <td class="m">FastAPI + Uvicorn</td>
+              <td>Приём multipart, отдача статики, поддержка https из коробки</td>
+            </tr>
+            <tr>
+              <td class="m">Фронтенд</td>
+              <td class="m">ванильный JS</td>
+              <td>Ни сборки, ни зависимостей, ни CDN — страница открывается как есть</td>
+            </tr>
+            <tr>
+              <td class="m">Распознавание</td>
+              <td class="m">faster-whisper<br>(CTranslate2)</td>
+              <td>Локально, с таймкодами слов — без них не посчитать паузы</td>
+            </tr>
+            <tr>
+              <td class="m">Аудио</td>
+              <td class="m">PyAV</td>
+              <td>Несёт свой ffmpeg: системный ставить не нужно</td>
+            </tr>
+            <tr>
+              <td class="m">Хранилище</td>
+              <td class="m">SQLite (WAL)</td>
+              <td>Нагрузка — десятки записей на занятие; отдельная СУБД избыточна</td>
+            </tr>
+            <tr>
+              <td class="m">Очередь</td>
+              <td class="m"><code>queue.Queue</code> +<br>поток-воркер</td>
+              <td>Переживает перезапуск: незавершённые задачи берутся из базы</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Внешних сервисов, брокеров и контейнеров нет: проект целиком помещается в одну
+        папку, а резервная копия сводится к копированию каталога <code>data/</code>.
+      </p>
+    </section>
+
+    <hr class="rule">
+
+    <section id="run">
+      <h2>Локальный запуск на одной машине</h2>
+      <p class="lede">
+        Сервер и браузер на одном компьютере. Микрофон работает без сертификата:
+        <code>localhost</code> браузер считает защищённым адресом.
+      </p>
+
+      <div class="note">
+        <span class="note-title">Что нужно поставить заранее</span>
+        <p>
+          Python 3.11 или новее с сайта python.org. При установке обязательно отметьте
+          галочку <strong>«Add Python to PATH»</strong> — без неё скрипт запуска не найдёт
+          интерпретатор. Больше ничего ставить не нужно: ffmpeg и openssl приносят с собой
+          зависимости проекта.
+        </p>
+      </div>
+
+      <div class="term">
+        <div class="term-label">Windows · командная строка из папки проекта</div>
+<pre>cd %USERPROFILE%\Desktop\Audio
+
+<span class="c">rem создаст окружение, поставит зависимости и запустит сервис</span>
+run.bat</pre>
+      </div>
+
+      <p>
+        Файл <code>run.bat</code> можно и просто открыть двойным щелчком из проводника.
+        Окно консоли нужно оставить открытым: пока оно закрыто, сервис не работает.
+        Остановка — <code>Ctrl+C</code> в этом окне.
+      </p>
+
+      <div class="term">
+        <div class="term-label">macOS и Linux · терминал из папки проекта</div>
+<pre>cd ~/Desktop/Audio
+./run.sh</pre>
+      </div>
+
+      <p>
+        Окружение и зависимости ставятся один раз, дальше запуск занимает секунды.
+        Скрипт сам печатает адреса, по которым сервис доступен, — IP определяется
+        автоматически. После строки <code>модель готова</code> можно открывать:
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Адрес</th><th>Что там</th></tr></thead>
+          <tbody>
+            <tr><td class="m">http://localhost:8000/</td><td>Страница студента: ID, запись, отправка</td></tr>
+            <tr><td class="m">http://localhost:8000/admin</td><td>Панель: таблица, CSV, отчёт за день</td></tr>
+            <tr><td class="m">http://localhost:8000/health</td><td>Проба живости и длина очереди</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <span class="note-title">Модель скачивается один раз</span>
+        <p>
+          При первом распознавании подтянется <code>small</code> (~464 МБ) в кэш
+          <code>~/.cache/huggingface</code>. Чтобы не ждать на первой записи, прогрейте
+          заранее — на Windows это
+          <code>.venv\Scripts\python -c "from faster_whisper import WhisperModel;
+          WhisperModel('small', compute_type='int8')"</code>, на macOS и Linux тот же
+          вызов через <code>.venv/bin/python</code>.
+        </p>
+      </div>
+
+      <h3>Если порт занят</h3>
+      <p>
+        Сообщение <code>address already in use</code> означает, что сервис уже запущен
+        в другом окне. Найти и снять процесс:
+      </p>
+      <div class="term">
+        <div class="term-label">Освободить порт 8000</div>
+<pre><span class="c">rem Windows</span>
+netstat -ano | findstr :8000
+taskkill /PID &lt;номер&gt; /F
+
+<span class="c"># macOS и Linux</span>
+pkill -f "uvicorn app.main:app"</pre>
+      </div>
+
+      <h3>Проверить без модели</h3>
+      <p>
+        Чтобы прогнать интерфейс, очередь и выгрузку CSV, не дожидаясь распознавания,
+        поставьте в <code>.env</code> заглушку — она отдаёт фиксированный текст мгновенно:
+      </p>
+      <div class="term">
+        <div class="term-label">.env</div>
+        <pre>ASR_BACKEND=stub</pre>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <section id="group">
+      <h2>Режим на группу: все на одно устройство</h2>
+      <p class="lede">
+        Тот же сервис, доступный по сети. Отличие одно: обязательный https.
+      </p>
+
+      <div class="note flag">
+        <span class="note-title">Микрофон и https</span>
+        <p>
+          Браузеры выдают микрофон только в защищённом контексте. По адресу
+          <code>http://192.168.x.x</code> кнопка записи не сработает — это политика
+          браузера, а не сервиса. Исключение одно: <code>localhost</code>.
+          Поэтому по сети сервис запускается только по https.
+        </p>
+      </div>
+
+      <div class="term">
+        <div class="term-label">Сервер для группы</div>
+<pre><span class="c">rem Windows — сам выпустит сертификат на текущий IP</span>
+run.bat --https
+
+<span class="c"># macOS и Linux</span>
+./run.sh --https
+
+<span class="p">Студенты:              https://10.24.2.252:8000/</span>
+<span class="p">Преподаватель:         https://10.24.2.252:8000/admin</span></pre>
+      </div>
+
+      <div class="note flag">
+        <span class="note-title">Брандмауэр Windows спросит один раз — и это легко пропустить</span>
+        <p>
+          При первом запуске сервиса Windows покажет окно «Разрешить обмен данными».
+          Нужно поставить галочку <strong>«Частные сети»</strong> и нажать «Разрешить
+          доступ». Если окно закрыть или отклонить, сервис будет работать, но с других
+          устройств не откроется — и это выглядит точно так же, как изоляция клиентов.
+          Поправить потом: Панель управления → Брандмауэр Защитника Windows →
+          Разрешение взаимодействия с приложением → найти Python и включить «Частные».
+        </p>
+      </div>
+
+      <p>
+        Сертификат самоподписанный, поэтому при первом заходе браузер покажет
+        предупреждение: «Дополнительно» → «Перейти». Один раз на устройство.
+        Выпускает его <code>scripts/make_cert.py</code> — кроссплатформенно, средствами
+        Python, системный openssl не нужен. В сертификат попадают текущий IP,
+        <code>localhost</code> и имя хоста, поэтому при смене сети его нужно
+        перевыпустить: удалить папку <code>certs/</code> и запустить снова.
+      </p>
+
+      <h3>Нагрузка</h3>
+      <p>
+        Запись идёт в Opus 64 кбит/с — <strong>около 2,4 МБ на пятиминутный ответ</strong>
+        (замерено: 118 КБ на 15 секунд). Группа в 45 человек — примерно 110 МБ суммарно,
+        и то не одновременно. Узкое место не сеть, а распознавание: <strong>≈8× быстрее
+        реального времени</strong> на модели <code>small</code> с <code>int8</code>
+        на Apple Silicon. 250 минут аудио обрабатываются примерно за полчаса, фоном.
+      </p>
+      <p>
+        Разогнать можно параметром <code>ASR_WORKERS</code> (2–3, упирается в ядра)
+        или моделью <code>base</code>. Точнее — <code>medium</code>, но время растёт
+        примерно втрое.
+      </p>
+
+      <h3>Проверка перед занятием</h3>
+      <ol>
+        <li>Открывается ли напечатанный адрес <strong>с чужого устройства</strong>, а не только с сервера.</li>
+        <li>Даёт ли браузер студента доступ к микрофону после принятия сертификата.</li>
+        <li>Появляется ли запись в <code>/admin</code> и доходит ли до статуса «готово».</li>
+        <li>Собирается ли отчёт за день и открываются ли аудио из выгруженного CSV.</li>
+      </ol>
+    </section>
+
+    <hr class="rule">
+
+    <section id="isolated">
+      <h2>Если сеть изолирована</h2>
+      <p class="lede">
+        Если сервер не виден с чужого устройства, чаще всего дело в изоляции клиентов
+        на точке доступа. Она включена почти на всех гостевых и корпоративных Wi-Fi.
+      </p>
+
+      <p>
+        Изоляция клиентов (client isolation, AP isolation) разрешает устройствам ходить
+        в интернет, но запрещает видеть друг друга внутри сети. Пинг и открытие страницы
+        сервера при этом не работают, хотя оба устройства «в одном Wi-Fi». Лечится это
+        не настройками сервиса, а тем, что сеть поднимается своя.
+      </p>
+
+      <figure>
+        <div class="fig-frame">
+          <svg viewBox="0 0 840 250" role="img" aria-label="Сравнение: в изолированной сети трафик от студента до сервера блокируется точкой доступа; при раздаче с ноутбука точка доступа и сервер — одно устройство, блокировать нечего">
+            <defs>
+              <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+              </marker>
+              <marker id="ar2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#0D7A72"/>
+              </marker>
+            </defs>
+
+            <!-- ЛЕВО: не работает -->
+            <text x="14" y="20" font-family="monospace" font-size="11.5" fill="#A34728">НЕ РАБОТАЕТ · ОБЩИЙ WI-FI С ИЗОЛЯЦИЕЙ</text>
+
+            <rect x="14" y="40" width="104" height="44" rx="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="66" y="60" font-size="12" fill="currentColor" text-anchor="middle">ноутбук</text>
+            <text x="66" y="74" font-size="12" fill="currentColor" text-anchor="middle">студента</text>
+
+            <line x1="124" y1="62" x2="168" y2="62" stroke="currentColor" stroke-width="1.4" marker-end="url(#ar2)"/>
+
+            <rect x="174" y="40" width="104" height="44" rx="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="226" y="60" font-size="12" fill="currentColor" text-anchor="middle">точка</text>
+            <text x="226" y="74" font-size="12" fill="currentColor" text-anchor="middle">доступа</text>
+
+            <line x1="284" y1="62" x2="330" y2="62" stroke="#A34728" stroke-width="1.4" stroke-dasharray="5 4"/>
+            <line x1="300" y1="50" x2="316" y2="74" stroke="#A34728" stroke-width="2"/>
+            <line x1="316" y1="50" x2="300" y2="74" stroke="#A34728" stroke-width="2"/>
+            <text x="308" y="94" font-size="11.5" fill="#A34728" text-anchor="middle">изоляция</text>
+            <text x="308" y="107" font-size="11.5" fill="#A34728" text-anchor="middle">клиентов</text>
+
+            <rect x="336" y="40" width="104" height="44" rx="5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".45"/>
+            <text x="388" y="60" font-size="12" fill="currentColor" text-anchor="middle" opacity=".6">сервер</text>
+            <text x="388" y="74" font-size="12" fill="currentColor" text-anchor="middle" opacity=".6">недоступен</text>
+
+            <text x="14" y="140" font-size="12" fill="currentColor" opacity=".7">Устройства в одной сети, но не видят друг друга.</text>
+            <text x="14" y="157" font-size="12" fill="currentColor" opacity=".7">Настройками сервиса не лечится.</text>
+
+            <!-- разделитель -->
+            <line x1="470" y1="10" x2="470" y2="200" stroke="currentColor" stroke-width="1" opacity=".2"/>
+
+            <!-- ПРАВО: работает -->
+            <text x="500" y="20" font-family="monospace" font-size="11.5" fill="#0D7A72">РАБОТАЕТ · РАЗДАЧА С НОУТБУКА ПРЕПОДАВАТЕЛЯ</text>
+
+            <rect x="500" y="40" width="104" height="44" rx="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <text x="552" y="60" font-size="12" fill="currentColor" text-anchor="middle">ноутбук</text>
+            <text x="552" y="74" font-size="12" fill="currentColor" text-anchor="middle">студента</text>
+
+            <line x1="610" y1="62" x2="662" y2="62" stroke="#0D7A72" stroke-width="1.6" marker-end="url(#ar2a)"/>
+            <text x="636" y="53" font-size="11" fill="#0D7A72" text-anchor="middle" font-family="monospace">https</text>
+
+            <rect x="668" y="30" width="156" height="66" rx="6" fill="none" stroke="#0D7A72" stroke-width="1.8"/>
+            <text x="746" y="52" font-size="12" fill="currentColor" text-anchor="middle">точка доступа</text>
+            <text x="746" y="68" font-size="12" fill="currentColor" text-anchor="middle">и сервер —</text>
+            <text x="746" y="84" font-size="12" fill="currentColor" text-anchor="middle" font-weight="600">одно устройство</text>
+
+            <text x="500" y="140" font-size="12" fill="currentColor" opacity=".7">Трафик не выходит за пределы ноутбука-сервера:</text>
+            <text x="500" y="157" font-size="12" fill="currentColor" opacity=".7">блокировать нечего. Интернет при этом не нужен.</text>
+          </svg>
+        </div>
+        <figcaption>
+          Разница ровно в одном звене: в левой схеме между студентом и сервером стоит
+          чужая точка доступа, в правой её нет — сервер сам раздаёт сеть.
+        </figcaption>
+      </figure>
+
+      <h3>Три способа собрать всех на одно устройство</h3>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Способ</th><th>Как</th><th>Годится когда</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Раздача с сервера</strong><br><span class="lock">рекомендуется</span></td>
+              <td>Windows: Параметры → Сеть и Интернет → Мобильный хот-спот,
+                  «Совместное использование» → Wi-Fi, включить.<br>
+                  macOS: Основные → Общий доступ → Общий интернет.<br>
+                  Студенты подключаются к этой сети и открывают адрес сервера.</td>
+              <td>Всегда. Не требует ни закупки, ни согласований, ни интернета</td>
+            </tr>
+            <tr>
+              <td><strong>Автономный роутер</strong></td>
+              <td>Дешёвый travel-роутер, ноутбук-сервер подключён к нему кабелем или
+                  по Wi-Fi, изоляция клиентов выключена в его настройках.</td>
+              <td>Группа большая, а Wi-Fi-модуль ноутбука не тянет 40+ клиентов</td>
+            </tr>
+            <tr>
+              <td><strong>Штатный Wi-Fi</strong></td>
+              <td>Попросить администратора сети выключить client isolation для вашего
+                  сегмента либо выдать сеть без неё.</td>
+              <td>Есть с кем договориться и время до занятия</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <span class="note-title">Как отличить изоляцию от других проблем</span>
+        <p>
+          С чужого устройства в той же сети выполните <code>ping &lt;IP сервера&gt;</code>.
+          Пинг не проходит, а интернет работает — это изоляция клиентов. Пинг проходит,
+          а страница не открывается — дело в брандмауэре на сервере (см. врезку выше)
+          либо в том, что uvicorn слушает <code>127.0.0.1</code> вместо
+          <code>0.0.0.0</code>.
+        </p>
+      </div>
+
+      <h3>Если сеть поднять не удалось</h3>
+      <p>
+        Если сеть поднять не удалось совсем — запись всё равно не теряется: она лежит
+        в браузере студента, страница держит её в памяти и предупреждает при попытке
+        закрыть вкладку. При обрыве связи отправка сама повторяется четыре раза с
+        нарастающей паузой, дальше остаётся кнопка «Отправить ещё раз». Достаточно
+        поднять сеть и нажать её.
+      </p>
+    </section>
+
+    <hr class="rule">
+
+    <section id="api">
+      <h2>HTTP API</h2>
+      <p class="lede">
+        Без авторизации доступно только то, что нужно странице студента. Остальное
+        закрыто кодом преподавателя.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Метод</th><th>Путь</th><th>Назначение</th><th>Доступ</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="verb">GET</span></td><td class="m">/api/config</td><td>Лимит записи, длина ID</td><td class="lock">открыто</td></tr>
+            <tr><td><span class="verb post">POST</span></td><td class="m">/api/recordings</td><td>Приём записи: <code>student_id</code>, <code>duration_sec</code>, <code>audio</code></td><td class="lock">открыто</td></tr>
+            <tr><td><span class="verb">GET</span></td><td class="m">/api/recordings/{uid}/status</td><td>Статус своей записи для студента</td><td class="lock">открыто</td></tr>
+            <tr><td><span class="verb">GET</span></td><td class="m">/media/{uid}</td><td>Аудиофайл по неугадываемому коду</td><td class="lock">по ссылке</td></tr>
+            <tr><td><span class="verb">GET</span></td><td class="m">/health</td><td>Живость и длина очереди</td><td class="lock">открыто</td></tr>
+            <tr><td><span class="verb">GET</span></td><td class="m">/api/recordings</td><td>Список с фильтрами: <code>q</code>, <code>status</code>, <code>date_from</code>, <code>date_to</code></td><td class="lock">токен</td></tr>
+            <tr><td><span class="verb post">POST</span></td><td class="m">/api/recordings/{id}/retry</td><td>Вернуть запись в очередь</td><td class="lock">токен</td></tr>
+            <tr><td><span class="verb post">POST</span></td><td class="m">/api/retry-errors</td><td>Перезапустить все ошибки разом</td><td class="lock">токен</td></tr>
+            <tr><td><span class="verb post">DELETE</span></td><td class="m">/api/recordings/{id}</td><td>Удалить запись вместе с аудио</td><td class="lock">токен</td></tr>
+            <tr><td><span class="verb">GET</span></td><td class="m">/export.csv</td><td>Общий CSV по текущим фильтрам</td><td class="lock">токен</td></tr>
+            <tr><td><span class="verb">GET</span></td><td class="m">/api/report/dates</td><td>Дни, за которые есть записи</td><td class="lock">токен</td></tr>
+            <tr><td><span class="verb post">POST</span></td><td class="m">/api/report?date=</td><td>Собрать папку отчёта за день</td><td class="lock">токен</td></tr>
+            <tr><td><span class="verb">GET</span></td><td class="m">/report/{день}.zip</td><td>Тот же отчёт архивом</td><td class="lock">токен</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        Токен передаётся заголовком <code>X-Admin-Token</code> либо параметром
+        <code>?token=</code> — второй вариант нужен, чтобы ссылки на скачивание
+        открывались прямо из браузера. Если <code>ADMIN_TOKEN</code> пуст, проверка
+        выключена и панель открыта всем в сети; при старте об этом печатается
+        предупреждение.
+      </p>
+
+      <div class="term">
+        <div class="term-label">Терминал · проверка приёма записи</div>
+        <pre>curl -X POST http://localhost:8000/api/recordings \
+  -F "student_id=1845" \
+  -F "duration_sec=14.8" \
+  -F "audio=@answer.webm;type=audio/webm"
+
+<span class="c"># → {"id":1,"uid":"bf88…","status":"pending","filename":"122131_1845_bf88e030.webm"}</span></pre>
+      </div>
+
+      <p>
+        <code>student_id</code> проверяется на сервере: ровно
+        <code>STUDENT_ID_LENGTH</code> цифр (по умолчанию 4). Всё остальное —
+        <code>400</code> с текстом ошибки. Длительность сверяется с лимитом,
+        но окончательная берётся из самого файла при декодировании.
+      </p>
+    </section>
+
+    <hr class="rule">
+
+    <section id="data">
+      <h2>Данные на диске</h2>
+
+      <div class="term">
+        <div class="term-label">Структура каталога data/</div>
+        <pre>data/
+├── app.db                       <span class="c"># SQLite: карточки ответов, тексты, метрики</span>
+├── audio/2026-08-31/            <span class="c"># исходное аудио, по папкам на день</span>
+│   └── 122131_1845_bf88e030.webm
+└── reports/
+    ├── 2026-08-31/              <span class="c"># отчёт за день</span>
+    │   ├── otchet_2026-08-31.csv
+    │   └── audio/…              <span class="c"># копии аудио этого дня</span>
+    └── otchet_2026-08-31.zip</pre>
+      </div>
+
+      <p>
+        Имя файла — <code>время_ID_код.webm</code>: запись можно найти без обращения к базе.
+        Код в имени — первые 8 символов <code>uid</code>, того же, что в ссылке
+        <code>/media/{uid}</code>.
+      </p>
+
+      <h3>Таблица <code>recordings</code></h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Поле</th><th>Тип</th><th>Смысл</th></tr></thead>
+          <tbody>
+            <tr><td class="m">id</td><td class="m">INTEGER</td><td>Первичный ключ, он же номер в панели</td></tr>
+            <tr><td class="m">uid</td><td class="m">TEXT</td><td>UUID без дефисов: публичная ссылка на аудио</td></tr>
+            <tr><td class="m">student_id</td><td class="m">TEXT</td><td>Четырёхзначный ID, введённый студентом</td></tr>
+            <tr><td class="m">created_at</td><td class="m">TEXT</td><td>ISO-время приёма записи</td></tr>
+            <tr><td class="m">audio_filename<br>audio_path</td><td class="m">TEXT</td><td>Имя и путь файла относительно корня проекта</td></tr>
+            <tr><td class="m">status</td><td class="m">TEXT</td><td><code>pending</code> · <code>processing</code> · <code>done</code> · <code>error</code></td></tr>
+            <tr><td class="m">error<br>attempts</td><td class="m">TEXT · INT</td><td>Текст сбоя и число попыток обработки</td></tr>
+            <tr><td class="m">transcript</td><td class="m">TEXT</td><td>Расшифровка</td></tr>
+            <tr><td class="m">duration_sec<br>speaking_sec</td><td class="m">REAL</td><td>Вся запись и чистое время речи без пауз</td></tr>
+            <tr><td class="m">word_count · wpm</td><td class="m">INT · REAL</td><td>Слов и темп по времени речи</td></tr>
+            <tr><td class="m">filler_count<br>filler_detail</td><td class="m">INT · TEXT</td><td>Паразиты: общее число и разбивка в JSON</td></tr>
+            <tr><td class="m">pause_count<br>avg_pause_sec<br>long_pause_count</td><td class="m">INT · REAL</td><td>Статистика пауз</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Поля <code>full_name</code> и <code>student_group</code> остались в схеме от
+        ранней версии, но не заполняются и нигде не отображаются — фамилии не собираются.
+        Удалять их не обязательно: старые базы продолжат открываться.
+      </p>
+    </section>
+
+    <hr class="rule">
+
+    <section id="metrics">
+      <h2>Как считаются метрики речи</h2>
+      <p class="lede">
+        Расчёт опирается на таймкоды отдельных слов, которые Whisper возвращает при
+        <code>word_timestamps=True</code>. Без них доступно только число слов.
+      </p>
+
+      <ul>
+        <li><strong>Пауза</strong> — промежуток между соседними словами от
+            <code>PAUSE_MIN_SECONDS</code> (0,3 с). Более короткие — естественные стыки.</li>
+        <li><strong>Длинная пауза</strong> — от <code>LONG_PAUSE_SECONDS</code> (2 с).</li>
+        <li><strong>Время речи</strong> — длительность минус паузы. Тишина до первого и
+            после последнего слова не входит ни во время речи, ни в статистику пауз.</li>
+        <li><strong>Темп</strong> — слова, делённые на время речи, а не на всю запись:
+            иначе обдумывание занижало бы темп говорящего.</li>
+      </ul>
+
+      <h3>Какие слова считаются паразитами</h3>
+      <p>
+        Словарь лежит в <code>config/fillers.txt</code> — одна позиция на строку,
+        строки с <code>#</code> игнорируются. Правится без изменения кода, перечитывается
+        при перезапуске. Сейчас в нём 27 позиций.
+      </p>
+
+      <p class="chip-label">Звуки-заполнители · 6</p>
+      <div class="chips">
+        <span class="chip">эм</span><span class="chip">ээ</span><span class="chip">мм</span>
+        <span class="chip">аа</span><span class="chip">эээ</span><span class="chip">ммм</span>
+      </div>
+
+      <p class="chip-label">Отдельные слова · 10</p>
+      <div class="chips">
+        <span class="chip">ну</span><span class="chip">вот</span><span class="chip">типа</span>
+        <span class="chip">короче</span><span class="chip">значит</span><span class="chip">блин</span>
+        <span class="chip">прям</span><span class="chip">походу</span><span class="chip">ваще</span>
+        <span class="chip">допустим</span>
+      </div>
+
+      <p class="chip-label">Словосочетания · 11</p>
+      <div class="chips">
+        <span class="chip">как бы</span><span class="chip">в общем</span><span class="chip">то есть</span>
+        <span class="chip">так сказать</span><span class="chip">это самое</span><span class="chip">скажем так</span>
+        <span class="chip">на самом деле</span><span class="chip">в принципе</span><span class="chip">честно говоря</span>
+        <span class="chip">как сказать</span><span class="chip">собственно говоря</span>
+      </div>
+
+      <p>
+        Поиск идёт по границам слов, с приоритетом длинных фраз: «как бы» считается одним
+        паразитом, а не двумя словами, «нуждается» за «ну» не принимается, регистр и
+        «ё/е» роли не играют. В CSV попадает и общее число, и разбивка вида
+        <code>ну: 3, как бы: 1</code>.
+      </p>
+
+      <div class="note flag">
+        <span class="note-title">Ограничения счётчика</span>
+        <p>
+          Часть этих слов бывает полноценными членами предложения — «то есть», «значит»,
+          «в принципе» в осмысленной фразе паразитами не являются, и счётчик их не
+          различает. Кроме того, Whisper склонен «причёсывать» речь и часть заполнителей
+          теряет: «ну» нередко распознаётся как «но». Модели передаётся подсказка на
+          дословность (<code>WHISPER_INITIAL_PROMPT</code>), но полной дословности не
+          даст ни один движок. Метрику стоит читать как сравнительную оценку, а не как
+          протокол; аудио лежит в той же строке CSV.
+        </p>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <section id="privacy">
+      <h2>Конфиденциальность: что уходит наружу</h2>
+
+      <p>
+        При настройках по умолчанию (<code>ASR_BACKEND=local</code>) —
+        <strong>ни аудио, ни расшифровки, ни ID никуда не передаются</strong>. Запись
+        приходит с браузера на сервер, там же распознаётся и там же остаётся. Аналитики,
+        телеметрии, внешних CDN и шрифтов в страницах нет: браузер обращается только к
+        своему же серверу.
+      </p>
+      <p>
+        Это проверено замером, а не только чтением кода: во время полного цикла
+        (приём записи → загрузка модели → распознавание → метрики) у процесса сервиса
+        <strong>не открывается ни одного внешнего сетевого соединения</strong>.
+      </p>
+
+      <h3>Обращение в сеть при старте</h3>
+      <p>
+        При старте библиотека модели спрашивает у huggingface.co, не обновилась ли
+        модель. В этом запросе нет ни аудио, ни текста, ни ID. Убирается строкой в
+        <code>.env</code> — добавлять её нужно <em>после</em> того, как модель один раз
+        скачана:
+      </p>
+      <div class="term">
+        <div class="term-label">.env · полностью автономный режим</div>
+        <pre>HF_HUB_OFFLINE=1</pre>
+      </div>
+      <p>
+        После этого сервис не выходит в сеть вообще — можно работать в аудитории без
+        интернета и убедиться в этом, отключив сеть на сервере.
+      </p>
+
+      <div class="note flag">
+        <span class="note-title">Режим, в котором данные уходят</span>
+        <p>
+          <code>ASR_BACKEND=openai</code>: каждый аудиофайл отправляется на серверы
+          OpenAI для распознавания. Режим выключен по умолчанию и включается только
+          вручную. Если требование конфиденциальности жёсткое — не включать.
+        </p>
+      </div>
+
+      <p>
+        Фамилии не собираются — только четырёхзначный ID, поэтому файлы сами по себе
+        не содержат прямых персональных данных: сопоставление «ID → студент» остаётся
+        у заказчика. Удаление: кнопка в панели убирает запись вместе с файлом, полное
+        стирание — удаление каталога <code>data/</code>.
+      </p>
+    </section>
+
+    <hr class="rule">
+
+    <section id="config">
+      <h2>Настройки</h2>
+      <p class="lede">
+        Параметры хранятся в <code>.env</code>, который создаётся из
+        <code>.env.example</code> при первом запуске и перечитывается при старте.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Параметр</th><th class="m">По умолчанию</th><th>Смысл</th></tr></thead>
+          <tbody>
+            <tr><td class="m">PORT</td><td class="m">8000</td><td>Порт сервера</td></tr>
+            <tr><td class="m">ADMIN_TOKEN</td><td class="m">пусто</td><td>Код доступа к панели и выгрузкам; пусто — открыто всем</td></tr>
+            <tr><td class="m">MAX_RECORD_SECONDS</td><td class="m">300</td><td>Лимит записи, 5 минут по ТЗ</td></tr>
+            <tr><td class="m">STUDENT_ID_LENGTH</td><td class="m">4</td><td>Сколько цифр в ID; <code>0</code> — не проверять</td></tr>
+            <tr><td class="m">MAX_UPLOAD_MB</td><td class="m">60</td><td>Предел размера файла</td></tr>
+            <tr><td class="m">ASR_BACKEND</td><td class="m">local</td><td><code>local</code> · <code>openai</code> · <code>stub</code></td></tr>
+            <tr><td class="m">ASR_WORKERS</td><td class="m">1</td><td>Сколько записей распознаётся одновременно</td></tr>
+            <tr><td class="m">WHISPER_MODEL</td><td class="m">small</td><td><code>tiny</code> … <code>large-v3</code></td></tr>
+            <tr><td class="m">WHISPER_COMPUTE_TYPE</td><td class="m">int8</td><td><code>int8</code> быстрее, <code>float32</code> точнее</td></tr>
+            <tr><td class="m">PAUSE_MIN_SECONDS</td><td class="m">0.3</td><td>С какого промежутка считать паузой</td></tr>
+            <tr><td class="m">LONG_PAUSE_SECONDS</td><td class="m">2.0</td><td>Какая пауза считается длинной</td></tr>
+            <tr><td class="m">CSV_DELIMITER</td><td class="m">;</td><td><code>;</code> для русского Excel, <code>,</code> для Google Sheets</td></tr>
+            <tr><td class="m">CSV_DECIMAL</td><td class="m">auto</td><td>Разделитель дробной части; <code>auto</code> — запятая при <code>;</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        <span class="note-title">Почему дробные числа выводятся через запятую</span>
+        <p>
+          Русский Excel принимает <code>1.27</code> за дату и показывает «янв.27».
+          Поэтому при разделителе столбцов <code>;</code> дробная часть отделяется
+          запятой. При <code>CSV_DELIMITER=,</code> разделителем автоматически
+          становится точка — конфликта не возникает.
+        </p>
+      </div>
+    </section>
+
+    <hr class="rule">
+
+    <section id="tests">
+      <h2>Тесты</h2>
+
+      <div class="term">
+        <div class="term-label">Прогон тестов из папки проекта</div>
+<pre><span class="c">rem Windows</span>
+.venv\Scripts\python -m unittest discover -s tests -t .
+
+<span class="c"># macOS и Linux</span>
+.venv/bin/python -m unittest discover -s tests -t .
+
+<span class="c"># Ran 33 tests — OK</span></pre>
+      </div>
+
+      <p>
+        Распознавание в тестах подменено заглушкой, поэтому прогон занимает меньше
+        секунды и не требует модели. Покрыто:
+      </p>
+      <ul>
+        <li>расчёт пауз, времени речи, темпа и паразитов, включая словосочетания и границы слов;</li>
+        <li>полный путь: приём записи → обработка → появление текста и метрик → CSV;</li>
+        <li>формат дробных чисел для Excel и относительные ссылки внутри отчёта;</li>
+        <li>сборка отчёта за день, его пересборка и архив;</li>
+        <li>проверка ID из четырёх цифр, пустого файла и превышения лимита;</li>
+        <li>поведение при битом аудио — запись не теряется, а получает статус <code>error</code>;</li>
+        <li>код доступа: заголовком и параметром, отказ при неверном.</li>
+      </ul>
+    </section>
+
+    <hr class="rule">
+
+    <section id="limits">
+      <h2>Известные ограничения</h2>
+
+      <ul>
+        <li><strong>Микрофон требует https по сети.</strong> Обходится
+            <code>./run.sh --https</code>; сертификат самоподписанный, предупреждение
+            браузера принимается один раз на устройство.</li>
+        <li><strong>Дословность расшифровки не гарантирована.</strong> Whisper нормализует
+            речь; счётчик паразитов — оценка, а не протокол.</li>
+        <li><strong>Одна попытка на ответ.</strong> Прослушивания и перезаписи нет по
+            требованию заказчика. Отправка при этом повторяется автоматически, а вкладка
+            предупреждает о закрытии с неотправленной записью.</li>
+        <li><strong>Сертификат привязан к IP.</strong> При смене сети удалить
+            <code>certs/</code> и запустить снова.</li>
+        <li><strong>На Windows брандмауэр нужно разрешить явно.</strong> Отклонённый
+            запрос выглядит как проблема сети и сбивает с толку при диагностике.</li>
+        <li><strong>Очередь однопоточная по умолчанию.</strong> При большой группе
+            последние расшифровки появятся с задержкой; это не мешает ни записи, ни
+            сдаче ответов.</li>
+      </ul>
+
+      <h3>Что можно доработать</h3>
+      <ul>
+        <li>QR-код с адресом в панели — чтобы 40 человек не набирали IP руками.</li>
+        <li>Офлайн-очередь на стороне браузера: запись копится в IndexedDB и досылается
+            сама, когда сеть вернётся.</li>
+        <li>Сопоставление ID со списком группы на стороне заказчика, если понадобится
+            выгрузка с фамилиями.</li>
+      </ul>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>
